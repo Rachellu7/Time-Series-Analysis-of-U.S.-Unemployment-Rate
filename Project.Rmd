@@ -1,0 +1,89 @@
+---
+title: "Final 457"
+author: "Ruichen Lu"
+date: "30/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(astsa)
+data(UnempRate)
+plot.ts(UnempRate, xlab="Time", ylab="Unemployment Rate (in percent)", 
+        main="Unemployment Rate in USA") 
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+par(mfrow=c(2,1))
+dl <- log(UnempRate)
+dlx <- diff(dl)
+diff12 <- diff(dlx,12)
+plot.ts(dlx, xlab="Year", ylab="Rate", col="Blue",
+        main="First Differencee on Logged Data") # detrended the data  d=1
+plot.ts(diff12, xlab="Year", ylab="Rate", col="Blue",
+        main="Twelfth Difference on the Differenced Logged Data") # detrended the data d=1 s=12
+```
+
+```{r}
+acf2(diff5, main= "ACF and PACF of Transformed U.S. Unemployment Rate Time Series", max.lag=100) #plot ACF and PACF graphs
+```
+```{r}
+sarima(UnempRate, 3,1,0, 0,1,1, 12) 
+```
+
+
+```{r}
+sarima(UnempRate, 0,1,5, 0,1,1, 12) 
+```
+
+```{r}
+predict.UnempRate <- sarima.for(UnempRate, main="Forecasting of U.S. Unemployment Rate",
+                                10, 0,1,5, 0,1,1,12)
+```
+```{r}
+month <- c(1:10)
+upper <-exp(predict.UnempRate$pred)+qnorm(0.975)*exp(predict.UnempRate$se)
+lower <-exp(predict.UnempRate$pred)-qnorm(0.975)*exp(predict.UnempRate$se)
+round(exp(predict.UnempRate$pred),3)
+round(upper,3)
+round(lower,3)
+```
+
+
+## spectral analysis
+```{r}
+us_per <- mvspec(UnempRate, log="no")
+```
+
+```{r}
+freq <- us_per$details[order(us_per$details[,3], decreasing = TRUE),]
+freq[1,]
+freq[2,]
+freq[3,]
+```
+
+```{r}
+#95% CI of the dominant frequencies
+library(MASS)
+us_up1 <- 2*freq[1,3]/qchisq(.025,2)
+us_lo1 <- 2*freq[1,3]/qchisq(.975,2)
+us_up2 <- 2*freq[2,3]/qchisq(.025,2)
+us_lo2 <- 2*freq[2,3]/qchisq(.975,2)
+us_up3 <- 2*freq[3,3]/qchisq(.025,2)
+us_lo3 <- 2*freq[3,3]/qchisq(.975,2)
+#Create dataframe
+df <- data.frame(series=c(rep("UnempRate", 3)), Frequency=c(freq[1,1], freq[2,1],freq[3,1]), spec=c(freq[1,3], freq[2,3], freq[3,3]), Lower.CI=c(us_lo1, us_lo2, us_lo3), Upper.CI=c(us_up1, us_up2, us_up3))
+df[3:5]=round(df[3:5], 4)
+df
+```
+
+
